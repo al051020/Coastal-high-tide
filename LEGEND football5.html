@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>足球传奇5 · 职业生涯模拟系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800;900&family=Inter:wght@400;600;700;800;900&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #06090f; color: #f8fafc; }
+        .font-num { font-family: 'JetBrains Mono', monospace; }
+        .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        
+        .pitch-board {
+            background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.16) 100%), #0a121d;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+        }
+        .logo-gold {
+            background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 sm:p-6 selection:bg-emerald-500 selection:text-white">
+
+    <!-- 全局荣誉与突发事件模态弹窗 -->
+    <div id="status-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl relative space-y-4">
+            <div id="modal-icon-wrap" class="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-400/40 flex items-center justify-center text-amber-400 text-3xl shadow-inner">
+                <i class="fas fa-trophy" id="modal-icon"></i>
+            </div>
+            <div>
+                <div class="text-[10px] font-num text-amber-400 tracking-widest uppercase font-bold" id="modal-category">OFFICIAL BULLETIN</div>
+                <h3 class="text-lg font-black text-white mt-1" id="modal-title">官方公报</h3>
+                <p class="text-xs text-slate-300 mt-2 leading-relaxed" id="modal-desc">通告正文...</p>
+            </div>
+            <button id="modal-action-btn" onclick="closeStatusModal()" class="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black rounded-xl text-xs transition tracking-wider shadow-lg">
+                确认
+            </button>
+        </div>
+    </div>
+
+    <!-- 思考与推演遮罩 (通用) -->
+    <div id="thinking-overlay" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3 hidden">
+        <div class="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin"></div>
+        <div class="text-xs font-num text-emerald-300 font-semibold tracking-wider" id="thinking-text">推演比赛细节与动态潜力演变...</div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-between space-y-5">
+
+        <!-- 步骤 1: 初始建档 (大 Logo、绿茵沙盘、背号、左右脚与全球国籍检索) -->
+        <div id="step-init" class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-6 my-auto">
+            <div class="text-center space-y-2 border-b border-slate-800 pb-5">
+                <div class="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-slate-950 border border-slate-800 mb-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-[10px] font-num tracking-widest uppercase text-slate-400">AUTHENTIC CAREER EVOLUTION ENGINE</span>
+                </div>
+                <div class="flex items-center justify-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white text-2xl shadow-lg shadow-emerald-950">
+                        <i class="fas fa-futbol"></i>
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+                        <span>足球传奇</span>
+                        <span class="logo-gold font-num text-4xl sm:text-5xl">5</span>
+                    </h1>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+                    拟真阶梯薪酬体系 · 青年外租练级机制 · 48岁超长职业寿命 · 全球 500+ 真实俱乐部网络
+                </p>
+            </div>
+
+            <!-- 绿茵战术阵型沙盘 (4-3-3 / 4-2-3-1 纵深结构) -->
+            <div class="pitch-board rounded-2xl p-4 sm:p-6 relative overflow-hidden space-y-4">
+                <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-emerald-500/10 pointer-events-none"></div>
+                <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 rounded-full border border-emerald-500/10 pointer-events-none"></div>
+
+                <!-- 1. 进攻锋线 -->
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="selectTacticalPos('LW', this)" class="t-slot py-3 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">LW</div>
+                        <div class="text-[10px] text-slate-400">左边锋</div>
+                    </button>
+                    <button onclick="selectTacticalPos('ST', this)" class="t-slot py-3 rounded-xl border-2 border-emerald-400 bg-emerald-950/70 text-center transition shadow-lg shadow-emerald-950">
+                        <div class="text-xs sm:text-sm font-black text-emerald-300">ST</div>
+                        <div class="text-[10px] text-emerald-400 font-bold">突前中锋</div>
+                    </button>
+                    <button onclick="selectTacticalPos('RW', this)" class="t-slot py-3 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">RW</div>
+                        <div class="text-[10px] text-slate-400">右边锋</div>
+                    </button>
+                </div>
+
+                <!-- 2. 前腰与边廊 -->
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="selectTacticalPos('LM', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">LM</div>
+                        <div class="text-[10px] text-slate-400">左边中场</div>
+                    </button>
+                    <button onclick="selectTacticalPos('CAM', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">CAM</div>
+                        <div class="text-[10px] text-slate-400">前腰 (核心组织)</div>
+                    </button>
+                    <button onclick="selectTacticalPos('RM', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">RM</div>
+                        <div class="text-[10px] text-slate-400">右边中场</div>
+                    </button>
+                </div>
+
+                <!-- 3. 中前卫与后腰 -->
+                <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                    <button onclick="selectTacticalPos('CM', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">CM</div>
+                        <div class="text-[10px] text-slate-400">中前卫 (调度节拍)</div>
+                    </button>
+                    <button onclick="selectTacticalPos('CDM', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">CDM</div>
+                        <div class="text-[10px] text-slate-400">后腰 (防守大闸)</div>
+                    </button>
+                </div>
+
+                <!-- 4. 后防线 -->
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="selectTacticalPos('LB', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">LB</div>
+                        <div class="text-[10px] text-slate-400">左后卫</div>
+                    </button>
+                    <button onclick="selectTacticalPos('CB', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">CB</div>
+                        <div class="text-[10px] text-slate-400">中后卫 (统帅)</div>
+                    </button>
+                    <button onclick="selectTacticalPos('RB', this)" class="t-slot py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">RB</div>
+                        <div class="text-[10px] text-slate-400">右后卫</div>
+                    </button>
+                </div>
+
+                <!-- 5. 门将 -->
+                <div class="max-w-xs mx-auto">
+                    <button onclick="selectTacticalPos('GK', this)" class="t-slot w-full py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition">
+                        <div class="text-xs sm:text-sm font-black text-slate-200">GK</div>
+                        <div class="text-[10px] text-slate-400">守门员 (叹息之墙)</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 姓名、球衣背号与左右脚 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">球员姓名</label>
+                    <input id="init-player-name" type="text" value="加布里埃尔·席尔瓦" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">球衣背号 (1–99)</label>
+                    <input id="init-player-number" type="number" min="1" max="99" value="9" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-num focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">惯用脚</label>
+                    <select id="init-player-foot" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        <option value="右脚">右脚 (Right)</option>
+                        <option value="左脚">左脚 (Left)</option>
+                        <option value="双足均衡">双足均衡 (Both Feet)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 全球 200+ 国籍实时检索 -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-semibold text-slate-400">注册国籍 (覆盖全球 200+ 代表队)</label>
+                    <span class="text-xs text-emerald-400 font-num" id="nation-count-tag">200+ 国家</span>
+                </div>
+                <input id="nation-search-input" oninput="filterNations()" type="text" placeholder="输入国家名检索 (如: 阿根廷, 挪威, 冰岛, 乌拉圭, 日本)..." class="w-full bg-slate-950 border border-slate-700 rounded-t-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                <select id="init-player-nation" size="3" class="w-full bg-slate-950 border border-slate-700 rounded-b-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 custom-scroll"></select>
+            </div>
+
+            <button onclick="goToAcademyStep()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm transition tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-emerald-950">
+                <span>进入青训营选择与签约</span>
+                <i class="fas fa-arrow-right text-xs"></i>
+            </button>
+        </div>
+
+        <!-- 步骤 2: 500+ 青训营全量选择 (支持关键字搜索) -->
+        <div id="step-academy" class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 my-auto hidden">
+            <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm sm:text-base font-bold text-white uppercase tracking-wider">第二步：选择青训母队</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">所有俱乐部均开放青训出道。支持检索 500+ 家全球真实俱乐部。</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="mode-btn-random" onclick="switchAcademyMode('random')" class="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">球探考察 (3选1)</button>
+                    <button id="mode-btn-manual" onclick="switchAcademyMode('manual')" class="px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-400">全库检索 (500+)</button>
+                </div>
+            </div>
+
+            <div id="academy-random-box" class="space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>球探递交的 3 份青训试训函：</span>
+                    <button onclick="rollRandomAcademies()" class="text-emerald-400 hover:underline flex items-center gap-1 font-semibold text-xs">
+                        <i class="fas fa-sync-alt text-[10px]"></i> 重新考察
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5" id="random-academy-list"></div>
+            </div>
+
+            <div id="academy-manual-box" class="space-y-2 hidden">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs text-slate-400">输入俱乐部名、国家或联赛快速定位：</label>
+                    <span class="text-xs font-num text-slate-500" id="academy-search-count">500+ 家已就绪</span>
+                </div>
+                <input id="academy-search-input" oninput="filterAcademies()" type="text" placeholder="键入关键词，如: 河床、多特蒙德、J1、比甲、挪超、阿贾克斯..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                <select id="manual-academy-select" size="6" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white custom-scroll"></select>
+            </div>
+
+            <button onclick="assessInitialPotential()" class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm transition shadow-lg tracking-wide">
+                签约母队并获取技术评级
+            </button>
+        </div>
+
+        <!-- 步骤 3: 字母评级与固定 3 款模板 -->
+        <div id="step-potential" class="bg-slate-900/95 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 my-auto hidden">
+            <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-2.5">
+                <div class="text-[10px] font-num uppercase tracking-widest text-slate-500">SCOUT REPORT · 青训技术综合评定</div>
+                <div class="flex items-center justify-center gap-4">
+                    <span class="text-3xl sm:text-4xl font-black font-num text-amber-400 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30" id="ui-tier-badge">S</span>
+                    <div class="text-left">
+                        <div class="text-lg font-black text-white" id="ui-tier-title">洲际名将雏形</div>
+                        <div class="text-xs text-slate-400" id="ui-tier-sub">潜力评级：S 级 · 具备一线争冠核心发展潜质</div>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-300 max-w-lg mx-auto leading-relaxed pt-1" id="ui-tier-desc"></p>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-400">
+                    <i class="fas fa-chart-line text-emerald-400 text-xs"></i>
+                    <span>动态潜能追踪已激活 · 随赛场表现与角色出场时间实时演化</span>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <div class="text-xs font-bold text-slate-300">选定初期发展模板 (系统精选 3 款代表性模板)：</div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5" id="matched-templates-box"></div>
+            </div>
+
+            <button onclick="startCareerSimulation()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm transition tracking-wide shadow-lg shadow-emerald-950">
+                开启 17 岁职业初赛季
+            </button>
+        </div>
+
+        <!-- 步骤 4: 核心生涯主看板 -->
+        <div id="step-main" class="flex-1 flex flex-col justify-between space-y-5 hidden">
+            
+            <!-- 顶部大面板 -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white text-xs shadow-md shadow-emerald-950">
+                            <i class="fas fa-futbol"></i>
+                        </div>
+                        <span class="text-xs font-black tracking-tight text-white flex items-center gap-1">
+                            <span>足球传奇</span>
+                            <span class="logo-gold font-num text-sm">5</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="loan-status-tag" class="hidden px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-xs font-semibold">
+                            <i class="fas fa-plane-departure mr-1"></i> 租借历练中
+                        </span>
+                        <div class="text-xs text-slate-400 font-num">
+                            最高挂靴上限: 48岁
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <!-- 左侧：评分与球员核心信息 -->
+                    <div class="flex items-center gap-4">
+                        <div class="relative flex items-center justify-center">
+                            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 border-2 border-emerald-500/70 flex flex-col items-center justify-center shadow-lg shadow-emerald-950">
+                                <span class="text-xs font-num text-emerald-400 font-bold uppercase tracking-wider" id="dash-pos-tag">ST</span>
+                                <span class="text-3xl sm:text-4xl font-black font-num text-white leading-none mt-0.5" id="dash-ovr-num">65</span>
+                            </div>
+                            <div class="absolute -bottom-2 px-2 py-0.5 rounded-full bg-slate-950 border border-slate-700 text-[10px] font-num font-bold text-slate-300" id="dash-growth-tag">+0</div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-base sm:text-xl font-black text-white" id="dash-name">球员姓名</h2>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-emerald-300 font-num font-bold" id="dash-num-tag">#9</span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-num" id="dash-age">17 岁</span>
+                            </div>
+                            <div class="text-xs text-sky-400 font-semibold mt-1" id="dash-club">现效力: 俱乐部</div>
+                            <div class="text-xs text-slate-400 mt-1 font-num">
+                                惯用脚: <span class="text-slate-200 font-semibold" id="dash-foot">右脚</span> · 
+                                周薪: <span class="text-emerald-400 font-bold" id="dash-wage">€4,000/周</span> · 
+                                累计报酬: <span class="text-slate-200" id="dash-earnings">€20万</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：更衣室定位与当前动态潜力等级 -->
+                    <div class="flex items-center gap-4 font-num text-right">
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center min-w-[100px]">
+                            <div class="text-xs text-slate-500">动态潜能评级</div>
+                            <div class="text-base font-black text-amber-400 mt-0.5" id="dash-tier-badge">S 级</div>
+                        </div>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center min-w-[125px]">
+                            <div class="text-xs text-slate-500">更衣室战术定位</div>
+                            <div class="text-xs font-bold text-sky-400 mt-1 truncate" id="dash-role-badge">重要轮换</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中部区域：当季战报与滚动历史记录表 -->
+            <div class="flex-1 flex flex-col space-y-4 min-h-[240px]">
+                <!-- 当季结算简报 -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-2.5">
+                        <span class="font-bold text-white flex items-center gap-1.5">
+                            <i class="fas fa-calendar-check text-sky-400"></i>
+                            <span id="dash-season-label">2026/27 赛季官方数据报告</span>
+                        </span>
+                        <span class="text-amber-400 font-num text-xs truncate max-w-md" id="dash-trophies-summary">团队荣誉: 暂无</span>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3 text-center font-num">
+                        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-500">赛季出场</div>
+                            <div class="text-sm sm:text-base font-bold text-white mt-0.5" id="stat-apps">0</div>
+                        </div>
+                        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-500" id="stat-p-label">核心造球</div>
+                            <div class="text-sm sm:text-base font-bold text-amber-300 mt-0.5" id="stat-p-val">0 / 0</div>
+                        </div>
+                        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-500">赛季均分</div>
+                            <div class="text-sm sm:text-base font-bold text-emerald-400 mt-0.5" id="stat-rating">6.85</div>
+                        </div>
+                        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                            <div class="text-xs text-slate-500">联赛成绩</div>
+                            <div class="text-xs sm:text-sm font-bold text-indigo-300 truncate mt-1" id="stat-rank">第 8 名</div>
+                        </div>
+                    </div>
+
+                    <!-- 动态潜能与地位考核提示 -->
+                    <div class="text-xs text-slate-400 bg-slate-950/60 px-3 py-2 rounded-lg border border-slate-800/80 leading-relaxed" id="dash-potential-feedback">
+                        【战术地位考核】赛季出场指标与战术贡献评估中...
+                    </div>
+                </div>
+
+                <!-- 历史赛季纵览表 -->
+                <div class="flex-1 bg-slate-950/70 border border-slate-800 rounded-xl p-3 overflow-y-auto max-h-60 custom-scroll">
+                    <table class="w-full text-left text-xs font-num">
+                        <thead class="text-slate-500 border-b border-slate-800 sticky top-0 bg-slate-950">
+                            <tr>
+                                <th class="pb-1.5">赛季</th>
+                                <th class="pb-1.5">效力俱乐部</th>
+                                <th class="pb-1.5">国内联赛战绩</th>
+                                <th class="pb-1.5">核心表现</th>
+                                <th class="pb-1.5">综合评分</th>
+                                <th class="pb-1.5">重大团队桂冠 (官方真实全称)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody" class="divide-y divide-slate-800/40 text-slate-300"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 底端决策坞：转会/租借/退役/事件处理区 -->
+            <div id="bottom-decision-container" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+                <!-- 动态内容渲染 -->
+            </div>
+        </div>
+
+        <!-- 步骤 5: 最终名人堂大满贯结算卡 -->
+        <div id="step-hall" class="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 my-auto hidden">
+            <div class="text-center space-y-1">
+                <div class="text-[10px] font-num tracking-widest text-amber-400 uppercase font-bold">FIFA & IFFHS 官方生涯终审公报</div>
+                <h2 class="text-2xl sm:text-3xl font-black text-white" id="hall-rating-title">世纪绿茵传奇 · 时代象征</h2>
+                <div class="text-xs text-slate-400" id="hall-meta-subtitle"></div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800 text-center font-num">
+                <div>
+                    <div class="text-xs text-slate-500">生涯总出场</div>
+                    <div class="text-base sm:text-lg font-bold text-white mt-0.5" id="hall-stat-apps">0 场</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500" id="hall-core-label">生涯造球 / 零封</div>
+                    <div class="text-base sm:text-lg font-bold text-amber-300 mt-0.5" id="hall-core-val">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">金球奖 (Ballon d'Or)</div>
+                    <div class="text-base sm:text-lg font-bold text-yellow-400 mt-0.5" id="hall-stat-ballon">0 座</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">重大团队奖杯</div>
+                    <div class="text-base sm:text-lg font-bold text-emerald-400 mt-0.5" id="hall-stat-cups">0 座</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1">
+                    <span class="text-slate-500 font-semibold">生涯薪酬总额：</span>
+                    <div class="text-sm font-bold text-emerald-400 font-num" id="hall-final-earnings">€0</div>
+                </div>
+                <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1">
+                    <span class="text-slate-500 font-semibold">俱乐部征战足迹：</span>
+                    <div class="text-xs text-sky-300 font-num truncate" id="hall-final-clubs">俱乐部轨迹</div>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <div class="text-xs font-bold text-slate-300">终身殊荣陈列室 (官方真实冠名)</div>
+                <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto custom-scroll" id="hall-trophy-badges"></div>
+            </div>
+
+            <div class="p-4 bg-slate-950/80 rounded-xl border border-slate-800 text-xs sm:text-sm text-slate-300 leading-relaxed" id="hall-contextual-summary"></div>
+
+            <div class="flex gap-3 pt-2">
+                <button onclick="location.reload()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition">
+                    重新开启新的人生推演
+                </button>
+                <button onclick="copyCareerLog()" class="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg">
+                    复制完整履历卡
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. 全球 200+ 国家与地区数据库
+        const GLOBAL_NATIONS = [
+            "阿富汗", "阿尔巴尼亚", "阿尔及利亚", "安道尔", "安哥拉", "安提瓜和巴布达", "阿根廷", "亚美尼亚", "澳大利亚", "奥地利", "阿塞拜疆",
+            "巴哈马", "巴林", "孟加拉国", "巴巴多斯", "白俄罗斯", "比利时", "伯利兹", "贝宁", "不丹", "玻利维亚", "波斯尼亚和黑塞哥维那", "博茨瓦纳", "巴西", "文莱", "保加利亚", "布基纳法索", "布隆迪",
+            "柬埔寨", "喀麦隆", "加拿大", "佛得角", "中非共和国", "乍得", "智利", "中国", "哥伦比亚", "科摩罗", "刚果(布)", "刚果(金)", "哥斯达黎加", "克罗地亚", "古巴", "塞浦路斯", "捷克",
+            "丹麦", "吉布提", "多米尼克", "多米尼加", "厄瓜多尔", "埃及", "萨尔瓦多", "赤道几内亚", "厄立特里亚", "爱沙尼亚", "斯威士兰", "埃塞俄比亚",
+            "斐济", "芬兰", "法国", "加蓬", "冈比亚", "格鲁吉亚", "德国", "加纳", "希腊", "格林纳达", "危地马拉", "几内亚", "几内亚比绍", "圭亚那",
+            "海地", "洪都拉斯", "匈牙利", "冰岛", "印度", "印度尼西亚", "伊朗", "伊拉克", "爱尔兰", "以色列", "意大利", "科特迪瓦",
+            "牙买加", "日本", "约旦", "哈萨克斯坦", "肯尼亚", "基里巴斯", "科索沃", "科威特", "吉尔吉斯斯坦",
+            "老挝", "拉脱维亚", "黎巴嫩", "莱索托", "利比里亚", "利比亚", "列支敦士登", "立陶宛", "卢森堡",
+            "马达加斯加", "马拉维", "马来西亚", "马尔代夫", "马里", "马耳他", "毛里塔尼亚", "毛里求斯", "墨西哥", "摩尔多瓦", "摩纳哥", "蒙古", "黑山", "摩洛哥", "莫桑比克", "缅甸",
+            "纳米比亚", "尼泊尔", "荷兰", "新西兰", "尼加拉瓜", "尼日尔", "尼日利亚", "北马其顿", "挪威", "阿曼",
+            "巴基斯坦", "巴勒斯坦", "巴拿马", "巴布亚新几内亚", "巴拉圭", "秘鲁", "菲律宾", "波兰", "葡萄牙",
+            "卡塔尔", "罗马尼亚", "俄罗斯", "卢旺达", "圣基茨和尼维斯", "圣卢西亚", "圣文森特和格林纳丁斯", "萨摩亚", "圣马力诺", "圣多美和普林西比", "沙特阿拉伯", "塞内加尔", "塞尔维亚", "塞舌尔", "塞拉利昂", "新加坡", "斯洛伐克", "斯洛文尼亚", "所罗门群岛", "索马里", "南非", "韩国", "南苏丹", "西班牙", "斯里兰卡", "苏丹", "苏里南", "瑞典", "瑞士", "叙利亚",
+            "塔吉克斯坦", "坦桑尼亚", "泰国", "东帝汶", "多哥", "汤加", "特立尼达和多巴哥", "突尼斯", "土耳其", "土库曼斯坦",
+            "乌干达", "乌克兰", "阿联酋", "英国 (英格兰)", "英国 (苏格兰)", "英国 (威尔士)", "英国 (北爱尔兰)", "美国", "乌拉圭", "乌兹别克斯坦",
+            "瓦努阿图", "委内瑞拉", "越南", "也门", "赞比亚", "津巴布韦"
+        ];
+
+        // 2. 500+ 真实俱乐部数据集 (工资区间回归现实基准)
+        const LEAGUE_SEEDS = [
+            { league: "西甲", domesticCup: "西班牙国王杯", country: "西班牙", region: "EU_TOP", repRange: [72, 94], wageRange: [300000, 20000000], tier: "giant",
+              teams: ["皇家马德里", "巴塞罗那", "赫罗纳", "马德里竞技", "毕尔巴鄂竞技", "皇家社会", "皇家贝蒂斯", "比利亚雷亚尔", "瓦伦西亚", "阿拉维斯", "奥萨苏纳", "赫塔费", "塞尔塔", "塞维利亚", "马略卡", "拉斯帕尔马斯", "巴列卡诺", "巴拉多利德", "莱加内斯", "西班牙人"] },
+            { league: "英超", domesticCup: "英格兰足总杯", country: "英格兰", region: "EU_TOP", repRange: [74, 94], wageRange: [400000, 22000000], tier: "giant",
+              teams: ["曼城", "阿森纳", "利物浦", "阿斯顿维拉", "托特纳姆热刺", "切尔西", "纽卡斯尔联", "曼联", "西汉姆联", "水晶宫", "布莱顿", "伯恩茅斯", "富勒姆", "狼队", "埃弗顿", "布伦特福德", "诺丁汉森林", "莱斯特城", "伊普斯维奇", "南安普顿"] },
+            { league: "意甲", domesticCup: "意大利杯", country: "意大利", region: "EU_TOP", repRange: [71, 91], wageRange: [250000, 14000000], tier: "giant",
+              teams: ["国际米兰", "AC米兰", "尤文图斯", "亚特兰大", "博洛尼亚", "罗马", "拉齐奥", "佛罗伦萨", "都灵", "那不勒斯", "热那亚", "蒙扎", "维罗纳", "莱切", "乌迪内斯", "卡利亚里", "恩波利", "帕尔马", "科莫", "威尼斯"] },
+            { league: "德甲", domesticCup: "德国杯", country: "德国", region: "EU_TOP", repRange: [70, 93], wageRange: [250000, 18000000], tier: "giant",
+              teams: ["勒沃库森", "斯图加特", "拜仁慕尼黑", "RB莱比锡", "多特蒙德", "法兰克福", "霍芬海姆", "海登海姆", "云达不莱梅", "弗赖堡", "奥格斯堡", "沃尔夫斯堡", "美因茨", "门兴格拉德巴赫", "柏林联合", "波鸿", "圣保利", "荷尔斯泰因基尔"] },
+            { league: "法甲", domesticCup: "法国杯", country: "法国", region: "EU_TOP", repRange: [69, 92], wageRange: [200000, 24000000], tier: "giant",
+              teams: ["巴黎圣日耳曼", "摩纳哥", "布雷斯特", "里尔", "尼斯", "里昂", "朗斯", "马赛", "兰斯", "雷恩", "图卢兹", "蒙彼利埃", "斯特拉斯堡", "南特", "勒阿弗尔", "欧塞尔", "昂热", "圣埃蒂安"] },
+            { league: "荷甲", domesticCup: "荷兰杯", country: "荷兰", region: "EU_MID", repRange: [67, 83], wageRange: [120000, 4500000], tier: "contender",
+              teams: ["PSV埃因霍温", "费耶诺德", "特温特", "阿尔克马尔", "阿贾克斯", "奈梅亨", "乌得勒支", "鹿特丹斯巴达", "前进之鹰", "福图纳锡塔德", "海伦芬", "兹沃勒", "阿尔梅勒城", "赫拉克勒斯", "瓦尔韦克", "威廉二世", "格罗宁根", "布雷达"] },
+            { league: "葡超", domesticCup: "葡萄牙杯", country: "葡萄牙", region: "EU_MID", repRange: [68, 84], wageRange: [150000, 5000000], tier: "contender",
+              teams: ["葡萄牙体育", "本菲卡", "波尔图", "布拉加", "吉马良斯", "莫雷拉人", "阿罗卡", "法马利康", "卡萨比亚", "法鲁人", "里奥阿维", "吉尔维森特", "埃斯托里尔", "阿马多拉", "博阿维斯塔", "圣克拉拉", "国民队", "AVS俱乐部"] },
+            { league: "比甲", domesticCup: "比利时杯", country: "比利时", region: "EU_LOW", repRange: [65, 80], wageRange: [100000, 3200000], tier: "contender",
+              teams: ["布鲁日", "圣吉罗斯联合", "安德莱赫特", "色格拉布鲁日", "根克", "安特卫普", "根特", "梅赫伦", "圣图尔登", "标准列日", "韦斯特洛", "奥德赫维里", "沙勒罗瓦", "科特赖克", "比尔肖特", "登德尔"] },
+            { league: "挪超", domesticCup: "挪威杯", country: "挪威", region: "EU_LOW", repRange: [64, 76], wageRange: [80000, 1800000], tier: "lower",
+              teams: ["博多格林特", "布兰", "特罗姆瑟", "维京", "莫尔德", "萨普斯堡", "利勒斯特罗姆", "斯特罗姆加斯特", "罗森博格", "奥德", "哈姆卡姆", "海于格松", "桑讷菲尤尔", "克里斯蒂安松", "KFUM奥斯陆", "腓特烈斯塔"] },
+            { league: "阿甲", domesticCup: "阿根廷杯", country: "阿根廷", region: "SA", repRange: [65, 77], wageRange: [100000, 2200000], tier: "contender",
+              teams: ["河床", "博卡青年", "竞赛会", "独立竞技", "圣洛伦索", "萨斯菲尔德", "拉普拉塔大学生", "拉努斯", "罗萨里奥中央", "纽维尔老男孩", "阿根廷青年人", "贝尔格拉诺", "塔勒雷斯", "图库曼竞技", "戈多伊克鲁斯", "班菲尔德", "老虎竞技", "防御与正义", "飓风队", "普拉滕斯", "巴拉卡斯中央", "圣菲联合", "拉普拉塔体操", "科尔多瓦中央", "里瓦达维亚独立", "萨米恩托", "利斯特拉", "图库曼圣马丁"] },
+            { league: "巴甲", domesticCup: "巴西杯", country: "巴西", region: "SA", repRange: [66, 78], wageRange: [120000, 2800000], tier: "contender",
+              teams: ["帕尔梅拉斯", "格雷米奥", "米内罗竞技", "弗拉门戈", "博塔弗戈", "红牛布拉干蒂诺", "弗鲁米嫩塞", "巴拉纳竞技", "国际队", "圣保罗", "库亚巴", "科林蒂安", "克鲁塞罗", "瓦斯科达伽马", "巴伊亚", "维多利亚", "尤文图德", "克里丘马", "戈亚斯", "科里蒂巴"] },
+            { league: "J1联赛", domesticCup: "日本天皇杯", country: "日本", region: "ASIA", repRange: [64, 74], wageRange: [90000, 2000000], tier: "contender",
+              teams: ["神户胜利船", "横滨水手", "广岛三箭", "浦和红钻", "鹿岛鹿角", "名古屋鲸八", "福冈黄蜂", "川崎前锋", "大阪樱花", "新泻天鹅", "FC东京", "町田泽维亚", "大阪钢巴", "鸟栖砂岩", "湘南比马", "京都不死鸟", "柏太阳神", "磐田喜悦", "东京绿茵", "札幌冈萨多"] },
+            { league: "K联赛1", domesticCup: "韩国足协杯", country: "韩国", region: "ASIA", repRange: [64, 73], wageRange: [80000, 1800000], tier: "contender",
+              teams: ["蔚山HD", "浦项制铁", "光州FC", "全北现代", "大邱FC", "仁川联", "首尔FC", "大田市民", "济州联", "江原FC", "水原FC", "金泉尚武"] },
+            { league: "沙特超", domesticCup: "沙特国王杯", country: "沙特", region: "SAUDI", repRange: [67, 84], wageRange: [1500000, 38000000], tier: "giant",
+              teams: ["利雅得新月", "利雅得胜利", "吉达国民", "达曼协作", "阿尔泰", "阿尔法特", "麦加统一", "达马克", "费哈", "利雅得青年人", "布赖代合作", "赛哈特海湾", "阿科多", "阿科鲁德", "阿尔奥鲁巴", "阿尔卡迪西亚", "阿尔纳泽马", "吉达联合"] },
+            { league: "美职联", domesticCup: "美国公开赛杯", country: "美国", region: "MLS", repRange: [65, 78], wageRange: [300000, 12000000], tier: "mid_upper",
+              teams: ["哥伦布机员", "洛杉矶FC", "辛辛那提FC", "迈阿密国际", "奥兰多城", "圣路易斯城", "费城联合", "新英格兰革命", "西雅图海湾人", "休斯敦迪纳摩", "皇家盐湖城", "温哥华白浪", "达拉斯FC", "堪萨斯城竞技", "波特兰伐木者", "圣何塞地震", "纽约红牛", "亚特兰大联", "纳什维尔SC", "夏洛特FC", "纽约城FC", "芝加哥火焰", "多伦多FC", "科罗拉多急流", "明尼苏达联", "洛杉矶银河", "华盛顿特区联", "蒙特利尔冲击", "奥斯汀FC", "圣迭戈FC"] }
+        ];
+
+        let ALL_CLUBS = [];
+        function assembleClubs() {
+            ALL_CLUBS = [];
+            LEAGUE_SEEDS.forEach(seed => {
+                seed.teams.forEach(name => {
+                    const step = (seed.repRange[1] - seed.repRange[0]) / Math.max(1, seed.teams.length - 1);
+                    const idx = seed.teams.indexOf(name);
+                    const teamRep = Math.round(seed.repRange[1] - (idx * step));
+                    ALL_CLUBS.push({
+                        name: name,
+                        league: seed.league,
+                        domesticCup: seed.domesticCup,
+                        country: seed.country,
+                        region: seed.region,
+                        rep: teamRep,
+                        baseWage: seed.wageRange[0],
+                        maxWage: seed.wageRange[1],
+                        tier: seed.tier
+                    });
+                });
+            });
+        }
+        assembleClubs();
+
+        // 3. 模板库：精选 3 款代表性模板
+        const MULTI_TEMPLATES = {
+            FW: {
+                SSS: [{ name: "罗纳尔多 (外星人模板)", desc: "极速钟摆过人与禁区终结峰值" }, { name: "梅西 (中路伪九号)", desc: "传球大师与得分机器合一" }, { name: "范巴斯滕 (芭蕾天鹅中锋)", desc: "终极优雅射术与无死角凌空斩" }],
+                SS: [{ name: "罗伯特·莱万多夫斯基", desc: "现代全能做球支点与高效终结" }, { name: "埃尔林·哈兰德", desc: "极致身体轰炸与反击核武" }, { name: "哈里·凯恩", desc: "回撤发牌直塞与大局观中锋" }],
+                S: [{ name: "杰米·瓦尔迪", desc: "极速反越位与大场面冷血刺客" }, { name: "奇罗·因莫比莱", desc: "禁区敏锐抢点与联赛得分手" }, { name: "阿尔瓦罗·莫拉塔", desc: "跑动牵制与战术型高空支点" }],
+                A: [{ name: "奥利维耶·吉鲁", desc: "桥头堡做球与战术牺牲天花板" }, { name: "何塞卢", desc: "传统高大强点头槌杀手" }, { name: "克里斯·伍德", desc: "英式强悍肉搏与高空争顶工兵" }],
+                B: [{ name: "肖恩·朗 (奔跑型前锋)", desc: "不知疲倦的高位逼抢与纵深撕扯" }, { name: "传统低级别肉搏中锋", desc: "专注禁区卡位补射，打法沉稳务实" }, { name: "战术掩护型支点", desc: "策应保护球权，为插上队友拉扯空间" }]
+            },
+            WING: {
+                SSS: [{ name: "罗纳尔迪尼奥", desc: "快乐美学魔术师，前场创造力天花板" }, { name: "C·罗纳尔多 (早期飞翼)", desc: "强侧单挑突破与边路重炮内切" }, { name: "内马尔 (桑巴爆点)", desc: "灵动穿花绕步与致命穿透传球" }],
+                SS: [{ name: "穆罕默德·萨拉赫", desc: "高效内切爆射与持续破门输出" }, { name: "孙兴慜", desc: "无逆足飞翼与反击世界波大师" }, { name: "维尼修斯", desc: "现代高强度反击绝对速度爆破点" }],
+                S: [{ name: "久保建英", desc: "小空间微操盘带与细腻视野" }, { name: "三笘薰", desc: "贴地逐帧变速突破与倒三角" }, { name: "佩德罗·罗德里格斯", desc: "大满贯决赛隐形杀手" }],
+                A: [{ name: "胡安·夸德拉多", desc: "体能充沛的边路往返防守型飞翼" }, { name: "马特奥·波利塔诺", desc: "内切跑动积极的联赛实用边锋" }, { name: "马克·奥尔布莱顿", desc: "不占球权，底线斜长传脚法精准" }],
+                B: [{ name: "纯工兵型边路奔跑者", desc: "专注协防边后卫，体能坚韧务实" }, { name: "直线突击型边锋", desc: "依靠爆发力直线冲击打身后" }, { name: "防守型边前卫", desc: "严格执行退守，边路拦截屏障" }]
+            },
+            MID: {
+                SSS: [{ name: "齐内丁·齐达内", desc: "中场天戈，优雅马赛回旋与大场面天神" }, { name: "哈维·埃尔南德斯", desc: "Tiki-Taka 节拍器，传球零失误宗师" }, { name: "迭戈·马拉多纳 (核心前腰)", desc: "单骑闯关与绝对精神领袖" }],
+                SS: [{ name: "凯文·德布劳内", desc: "全场巡航制导与手术刀致命直塞" }, { name: "卢卡·莫德里奇", desc: "外脚背艺术与长青攻防枢纽" }, { name: "托尼·克罗斯", desc: "精准发牌，传球成功率95%的节拍器" }],
+                S: [{ name: "伊万·拉基蒂奇", desc: "战术纪律严谨的攻防铁人" }, { name: "哈坎·恰尔汗奥卢", desc: "深位发牌后腰与定位球重炮" }, { name: "克里斯蒂安·埃里克森", desc: "大局视野与阵地战精准调度" }],
+                A: [{ name: "远藤航", desc: "地面拼抢决斗之王与防守铁腰" }, { name: "詹姆斯·米尔纳", desc: "八边形老兵与极致职业典范" }, { name: "查理·亚当", desc: "大范围精准调度长传手" }],
+                B: [{ name: "李·卡特莫尔 (硬派扫荡者)", desc: "作风凶悍，专注破坏对手推进" }, { name: "体能覆盖型奔跑中场", desc: "全场穿插逼抢，干尽脏活累活" }, { name: "朴实阵地战防守后腰", desc: "安全球传递，战术执行滴水不漏" }]
+            },
+            DEF: {
+                SSS: [{ name: "保罗·马尔蒂尼", desc: "防守艺术殿堂，预判与铲抢教科书" }, { name: "弗朗茨·贝肯鲍尔", desc: "自由人先驱，防线领袖与出球源泉" }, { name: "卡莱斯·普约尔", desc: "血肉筑盾与永不言弃铁血队长" }],
+                SS: [{ name: "维吉尔·范戴克", desc: "一对一单防壁垒与空中统治者" }, { name: "塞尔希奥·拉莫斯", desc: "9248绝杀头球与硬汉压迫" }, { name: "保·库巴西 (出球中卫形态)", desc: "穿透性长传直塞出球后卫" }],
+                S: [{ name: "金玟哉", desc: "怪兽级身体对抗与大范围回追铁闸" }, { name: "尼古拉斯·奥塔门迪", desc: "贴身搏杀与经验老道的防守基石" }, { name: "斯蒂芬·萨维奇", desc: "防线铁血绞肉机与对抗强点" }],
+                A: [{ name: "丹·伯恩", desc: "两米巨人高空纯粹防空屏障" }, { name: "康纳·考迪", desc: "三中卫长传发牌统帅" }, { name: "瑞安·肖克罗斯", desc: "禁区肉搏封堵与坚决解围硬汉" }],
+                B: [{ name: "低级别防线清道夫", desc: "大脚解围第一，杜绝后场玩火" }, { name: "防守型纯边后卫", desc: "严格不插上，专注贴防边锋" }, { name: "高大笨重空霸中卫", desc: "阵地战头球解围保障" }]
+            },
+            GK: {
+                SSS: [{ name: "曼努埃尔·诺伊尔", desc: "门卫革命者，超大禁区控制" }, { name: "吉安路易吉·布冯", desc: "长青圣手，稳固零失误壁垒" }, { name: "伊克尔·卡西利亚斯", desc: "圣卡西，单刀终结者与极速下地" }],
+                SS: [{ name: "蒂博·库尔图瓦", desc: "超长臂展，欧冠决赛封神之墙" }, { name: "马克·特尔施特根", desc: "神级门线反应与后场出球" }, { name: "阿利松·贝克尔", desc: "一对一单刀封堵大师" }],
+                S: [{ name: "扬·索默", desc: "极速下地救险与点球心理大师" }, { name: "凯洛尔·纳瓦斯", desc: "门线飞身扑救夺冠福将" }, { name: "埃米利亚诺·马丁内斯", desc: "大场面扑点天神与心理威慑" }],
+                A: [{ name: "尼克·波普", desc: "传统高空球统治门神" }, { name: "约翰·鲁迪", desc: "选位稳健，指挥防线经验老道" }, { name: "实用型门线门将", desc: "基本功扎实，专注封堵近角" }],
+                B: [{ name: "英式传统开大脚门将", desc: "大脚长传发起进攻，门线反应质朴" }, { name: "低级别联赛常青门神", desc: "经验丰富，扑救风格务实" }, { name: "高空球出击型门将", desc: "争顶果敢，专注解围传中" }]
+            }
+        };
+
+        // 4. 生涯随机事件库
+        const CAREER_EVENTS_POOL = [
+            {
+                title: "半决赛前的封闭针抉择",
+                desc: "欧冠半决赛次回合赛前，核磁共振显示你的膝关节轻度积液并伴随韧带劳损。队医严肃警告如果强行打封闭登场，可能引发韧带撕脱性不可逆损伤。",
+                probChoice: {
+                    title: "签署免责协议，打封闭带伤首发！(搏杀奇迹)",
+                    buffOutcome: "铁血封神！你在加时赛拖着伤腿狂奔40米单骑绝杀对手！赛后全场球迷高呼你的名字，主帅在新闻发布会泪目赞誉你的纯粹斗志，球场大局观与抗压极限蜕变提升！",
+                    debuffOutcome: "噩梦降临！第70分钟变向急停时膝盖内侧副韧带彻底断裂！担架紧急进场，全场鸦雀无声。核磁共振复查显示软骨重度磨损，缺席大半赛季且爆发力受到永久削弱！"
+                },
+                safeChoice: {
+                    title: "服从医疗组建议，替补席观战休养 (理智自保)",
+                    outcome: "你理智地选择相信队友，安心在场边加油。两周后伤势完全痊愈，规避了职业生涯早期的重大隐患，体能充沛地迎战后续联赛。"
+                }
+            },
+            {
+                title: "休赛期海外高原魔鬼特训",
+                desc: "知名外籍体能团队为你制定了一份极度严苛的高原缺氧爆发力训练大纲。这套训练曾造就过多位金球先生，但极易造成心肺超负荷与肌纤维撕裂。",
+                probChoice: {
+                    title: "完成全部高强度缺氧间歇跑与对抗 (超越生理极限)",
+                    buffOutcome: "蜕变成功！你的体脂率降至极限，腿部对抗与瞬时爆发力迎来跨时代飞跃！季前热身赛轻松戏耍对方后防线，青训球探报告全面上调你的潜能天花板！",
+                    debuffOutcome: "过犹不及！第三周高强度冲刺时腘绳肌严重拉伤并伴随跟腱急性水肿！医生勒令立刻停训两个月，错过了整个新赛季季前战术磨合期，核心速率遭到挫折！"
+                },
+                safeChoice: {
+                    title: "严格遵循俱乐部发放的度假体能方案 (稳扎稳打)",
+                    outcome: "劳逸结合，身体机能平稳达标。虽然没有产生突破性的生理飞跃，但在赛季首战展现出了健康自律的良好面貌。"
+                }
+            },
+            {
+                title: "客场死敌德比的火药桶决斗",
+                desc: "客场遭遇死敌球迷铺天盖地的嘘声与杂物投掷，对方后腰多次在裁判盲区采用踩脚踝、肘击等粗鲁犯规进行肉体打击，比赛火药味彻底失控。",
+                probChoice: {
+                    title: "拒绝退让！正面强突生吃对手防线 (硬碰硬制裁)",
+                    buffOutcome: "技高一筹！你用一记写意的油炸丸子穿裆过掉挑衅的后腰，助攻空门得手！随后在客场看台前指耳霸气庆祝，一战打碎死敌气焰，领袖风骨彻底确立！",
+                    debuffOutcome: "暗箭难防！在反击中遭遇对方侧后方剪刀脚报复性恶意飞铲！脚踝当场严重肿胀变形，救护车直接进场送医，诊断为韧带撕裂，伤停长达5个月！"
+                },
+                safeChoice: {
+                    title: "后撤一脚出球，用极快传接避其锋芒 (大师级球商)",
+                    outcome: "你用冷酷的上帝视野与无懈可击的一脚传球戏弄了对方的粗野逼抢，在确保自身安全的同时带领全队高效收割客场3分。"
+                }
+            },
+            {
+                title: "更衣室战术复盘会的核心地位逼宫",
+                desc: "球队遭遇联赛连续三场不胜，主帅保守的阵地传控打法被各路对手吃透。身为更衣室核心骨干，你有机会在录像分析会上要求获得前场无限开火权。",
+                probChoice: {
+                    title: "站出来据理力争，要求战术重心彻底向自己倾斜 (大权独揽)",
+                    buffOutcome: "主帅被你的战术见解与自信打动，连夜重组战术阵型！在新体系下你如鱼得水，单场交出2球1助攻的答卷，彻底确立球队第一当家的战术话语权！",
+                    debuffOutcome: "你的言论激怒了更衣室多位老资历外援，引发严重的帮派内讧！随后两场比赛队友明显减少了给你的传球支援，你在场上形同梦游，连续两轮被打出及格线以下的低分！"
+                },
+                safeChoice: {
+                    title: "保持沉默与职业纪律，做好自己的本职防守 (遵从整体)",
+                    outcome: "更衣室避免了一场毁灭性的风暴，你用脚踏实地的无球跑动与防守回追稳住了局势，赢得了教练组与队长的高度信赖。"
+                }
+            },
+            {
+                title: "世界级奢侈品牌的跨界代言风波",
+                desc: "一家国际顶级奢侈品品牌向你开出天价代言合约，但要求在密集的争冠冲刺期配合进行全球时装周走秀与商业拍摄，这势必会挤占日常训练与理疗时间。",
+                probChoice: {
+                    title: "签约代言，并自费聘请全天候私人理疗团队随行 (名利双收)",
+                    buffOutcome: "商业价值迎来核爆级破圈！私人理疗师精准保障了你在差旅途中的身体状态，赛场与商业双线飘红，个人综合声望与赛场自信全面升格！",
+                    debuffOutcome: "跨国飞行与倒时差彻底摧毁了你的生物钟与肌肉状态！关键战首发出场步履沉重，全场触球失误频发，主教练在赛后发布会公开批评你的专注度不足！"
+                },
+                safeChoice: {
+                    title: "婉拒商业活动，深居简出全身心投入草皮战壕 (纯粹球痴)",
+                    outcome: "你的职业操守赢得了足球专业圈内的一致敬重。心无杂念的专注让你在周末的争冠天王山决战中打入制胜球，以纯粹的竞技实力说话。"
+                }
+            },
+            {
+                title: "补时第95分钟的终极点球生死战",
+                desc: "争冠决战第95分钟球队获得绝杀点球。第一点球手心理崩溃不敢主罚，全场七万名主队球迷屏住呼吸注视着你。",
+                probChoice: {
+                    title: "走上十二码点，主罚高难度的勺子点球！(极限心理博弈)",
+                    buffOutcome: "神来之笔！皮球轻巧地划过一道弧线从扑偏的门将上方坠入网窝！绝杀捧杯！七万人为你掀起人浪，各大体育头版称赞你拥有足坛历史罕见的大心脏！",
+                    debuffOutcome: "判断失误！对方门将看穿了你的挑射意图，站在原地直接将球没收！裁判随即吹响终场哨，冠军擦肩而过，你瘫坐在草皮上痛苦掩面。"
+                },
+                safeChoice: {
+                    title: "冷静选择贴地推射球门死角 (教科书式射门)",
+                    outcome: "球速极快直窜球网内侧立柱入网！虽然没有华丽的花活，但稳稳带走了至关重要的冠军锦标，全队疯狂将你压在身下庆祝！"
+                }
+            }
+        ];
+
+        // 5. 运行时核心球员数据
+        let currentPos = "ST";
+        let academyMode = "random";
+        let chosenAcademy = null;
+        let selectedTpl = null;
+
+        let career = {
+            name: "",
+            number: 9,
+            foot: "右脚",
+            nation: "阿根廷",
+            pos: "ST",
+            academy: "",
+            ovr: 65,
+            hiddenPA: 86,
+            tierCode: "S",
+            currentRole: "重要轮换拼图",
+            age: 17,
+            startYear: 2026,
+            club: null,
+            parentClub: null,
+            isLoaned: false,
+            loanPendingDecision: false,
+            nextContinental: "无",
+            annualWage: 200000,
+            totalEarnings: 0,
+            history: [],
+            totalApps: 0,
+            totalGoals: 0,
+            totalAssists: 0,
+            totalCleanSheets: 0,
+            ballonDOrWins: 0,
+            trophies: [],
+            isRetiredEarly: false,
+            retirementReason: ""
+        };
+
+        function filterNations() {
+            const query = document.getElementById('nation-search-input').value.trim().toLowerCase();
+            const select = document.getElementById('init-player-nation');
+            select.innerHTML = '';
+
+            const filtered = GLOBAL_NATIONS.filter(n => n.toLowerCase().includes(query));
+            filtered.forEach((n, idx) => {
+                const opt = document.createElement('option');
+                opt.value = n;
+                opt.innerText = n;
+                if (idx === 0) opt.selected = true;
+                select.appendChild(opt);
+            });
+            document.getElementById('nation-count-tag').innerText = `匹配到 ${filtered.length} 个`;
+        }
+
+        function filterAcademies() {
+            const query = document.getElementById('academy-search-input').value.trim().toLowerCase();
+            const select = document.getElementById('manual-academy-select');
+            select.innerHTML = '';
+
+            const filtered = ALL_CLUBS.filter(c => 
+                c.name.toLowerCase().includes(query) || 
+                c.country.toLowerCase().includes(query) || 
+                c.league.toLowerCase().includes(query)
+            );
+
+            filtered.forEach((c, idx) => {
+                const opt = document.createElement('option');
+                opt.value = c.name;
+                opt.innerText = `${c.name} (${c.league} · ${c.country})`;
+                if (idx === 0) opt.selected = true;
+                select.appendChild(opt);
+            });
+            document.getElementById('academy-search-count').innerText = `匹配到 ${filtered.length} 家`;
+        }
+
+        function selectTacticalPos(pos, btn) {
+            currentPos = pos;
+            document.querySelectorAll('.t-slot').forEach(b => {
+                b.className = "t-slot py-2.5 sm:py-3 rounded-xl border border-slate-800 bg-slate-900/90 text-center hover:border-emerald-500 transition";
+                const t = b.querySelector('.font-black');
+                if (t) t.className = "text-xs sm:text-sm font-black text-slate-200";
+            });
+            btn.className = "t-slot py-2.5 sm:py-3 rounded-xl border-2 border-emerald-400 bg-emerald-950/70 text-center transition shadow-lg shadow-emerald-950";
+            const curTitle = btn.querySelector('.font-black');
+            if (curTitle) curTitle.className = "text-xs sm:text-sm font-black text-emerald-300";
+        }
+
+        function goToAcademyStep() {
+            career.name = document.getElementById('init-player-name').value.trim() || '新星球员';
+            career.number = parseInt(document.getElementById('init-player-number').value) || 9;
+            career.foot = document.getElementById('init-player-foot').value;
+            career.nation = document.getElementById('init-player-nation').value || '阿根廷';
+            career.pos = currentPos;
+
+            document.getElementById('step-init').classList.add('hidden');
+            document.getElementById('step-academy').classList.remove('hidden');
+
+            filterAcademies();
+            rollRandomAcademies();
+        }
+
+        function switchAcademyMode(mode) {
+            academyMode = mode;
+            const btnR = document.getElementById('mode-btn-random');
+            const btnM = document.getElementById('mode-btn-manual');
+            const boxR = document.getElementById('academy-random-box');
+            const boxM = document.getElementById('academy-manual-box');
+
+            if (mode === 'random') {
+                btnR.className = "px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                btnM.className = "px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-400";
+                boxR.classList.remove('hidden');
+                boxM.classList.add('hidden');
+            } else {
+                btnM.className = "px-3 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                btnR.className = "px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-400";
+                boxM.classList.remove('hidden');
+                boxR.classList.add('hidden');
+            }
+        }
+
+        let currentRandomThree = [];
+        function rollRandomAcademies() {
+            const copy = [...ALL_CLUBS].sort(() => 0.5 - Math.random());
+            currentRandomThree = copy.slice(0, 3);
+            chosenAcademy = currentRandomThree[0];
+
+            const box = document.getElementById('random-academy-list');
+            box.innerHTML = '';
+            currentRandomThree.forEach((c, i) => {
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-xl border cursor-pointer transition text-left ${i === 0 ? 'border-emerald-400 bg-slate-900 shadow-md' : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'}`;
+                card.onclick = () => {
+                    chosenAcademy = c;
+                    document.querySelectorAll('#random-academy-list > div').forEach(el => el.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 transition text-left');
+                    card.className = 'p-3.5 rounded-xl border border-emerald-400 bg-slate-900 shadow-md transition text-left';
+                };
+                card.innerHTML = `
+                    <div class="text-xs sm:text-sm font-bold text-white mb-0.5 truncate">${c.name}</div>
+                    <div class="text-[10px] text-emerald-400 font-semibold mb-1">${c.league} · ${c.country}</div>
+                    <div class="text-[10px] text-slate-400">知名度评级: ${c.rep}/100</div>
+                `;
+                box.appendChild(card);
+            });
+        }
+
+        // 评估初始潜力 (增加 1.6 秒沉浸思考时间)
+        function assessInitialPotential() {
+            if (academyMode === 'manual') {
+                const val = document.getElementById('manual-academy-select').value;
+                chosenAcademy = ALL_CLUBS.find(c => c.name === val) || ALL_CLUBS[0];
+            }
+            career.academy = chosenAcademy.name;
+
+            showThinking("球探团队正在分析骨骼模型、身体机能与战术悟性...", 1600, () => {
+                career.ovr = Math.floor(Math.random() * 6) + 63; // 63 - 68
+
+                const seed = Math.random();
+                let tierName = "S";
+                let paValue = 85;
+
+                if (seed > 0.90) {
+                    tierName = "SSS";
+                    paValue = Math.floor(Math.random() * 3) + 93;
+                } else if (seed > 0.65) {
+                    tierName = "SS";
+                    paValue = Math.floor(Math.random() * 4) + 89;
+                } else if (seed > 0.35) {
+                    tierName = "S";
+                    paValue = Math.floor(Math.random() * 4) + 84;
+                } else if (seed > 0.15) {
+                    tierName = "A";
+                    paValue = Math.floor(Math.random() * 4) + 79;
+                } else {
+                    tierName = "B";
+                    paValue = Math.floor(Math.random() * 4) + 74;
+                }
+
+                career.hiddenPA = paValue;
+                career.tierCode = tierName;
+
+                document.getElementById('step-academy').classList.add('hidden');
+                document.getElementById('step-potential').classList.remove('hidden');
+
+                const tierMeta = {
+                    SSS: { title: "天资深不可测 (划时代神童)", desc: "球探团队对其技术直觉与球感惊叹不已，具备极高发展空间与打破足坛历史纪录的可能。" },
+                    SS: { title: "豪门战术领袖 (未来核心)", desc: "球商出众，大局观与比赛阅读力极强，具备蜕变为欧洲一线豪门绝对支柱的素质。" },
+                    S: { title: "洲际主流名将 (黄金骨干)", desc: "专长鲜明，各大主流联赛争冠与欧战队伍急需的关键主力基石。" },
+                    A: { title: "联赛坚实基石 (实用主力)", desc: "球风务实过硬，职业操守优秀，能在主流职业赛场建立长期稳固的首发席位。" },
+                    B: { title: "朴实战术工兵 (勤勉拼图)", desc: "战术纪律严谨，专注于脏活累活与防守执行，值得信赖的更衣室战友。" }
+                };
+
+                document.getElementById('ui-tier-badge').innerText = tierName;
+                document.getElementById('ui-tier-title').innerText = tierMeta[tierName].title;
+                document.getElementById('ui-tier-sub').innerText = `青训潜力评级：${tierName} 级 · 依据赛场表现与角色出场时间实时演进`;
+                document.getElementById('ui-tier-desc').innerText = tierMeta[tierName].desc;
+
+                let group = 'MID';
+                if (career.pos === 'ST') group = 'FW';
+                else if (['LW', 'RW', 'LM', 'RM'].includes(career.pos)) group = 'WING';
+                else if (['CB', 'LB', 'RB', 'CDM'].includes(career.pos)) group = 'DEF';
+                else if (career.pos === 'GK') group = 'GK';
+
+                const templates = (MULTI_TEMPLATES[group][tierName] || MULTI_TEMPLATES[group]['A']).slice(0, 3);
+                renderTemplateCards(templates);
+            });
+        }
+
+        function renderTemplateCards(list) {
+            const container = document.getElementById('matched-templates-box');
+            container.innerHTML = '';
+            selectedTpl = list[0];
+
+            list.forEach((t, i) => {
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-xl border cursor-pointer transition text-left ${i === 0 ? 'border-emerald-400 bg-slate-900 shadow-md' : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'}`;
+                card.onclick = () => {
+                    selectedTpl = t;
+                    document.querySelectorAll('#matched-templates-box > div').forEach(el => el.className = 'p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 transition text-left');
+                    card.className = 'p-3.5 rounded-xl border border-emerald-400 bg-slate-900 shadow-md transition text-left';
+                };
+                card.innerHTML = `
+                    <div class="text-xs sm:text-sm font-bold text-white mb-0.5 truncate">${t.name}</div>
+                    <div class="text-xs text-slate-400 leading-tight">${t.desc}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function startCareerSimulation() {
+            career.age = 17;
+            career.startYear = 2026;
+            career.club = chosenAcademy;
+            
+            // 青年出道周薪真实控制在 €2,500 - €5,000/周 (年薪约 €12万 - €25万)
+            career.annualWage = calculateRealisticWage(career.ovr, chosenAcademy, false);
+            career.totalEarnings = career.annualWage;
+            career.nextContinental = getContinentalQuota(chosenAcademy, 1);
+            career.currentRole = getSquadRole(career.ovr, chosenAcademy.rep);
+
+            document.getElementById('step-potential').classList.add('hidden');
+            document.getElementById('step-main').classList.remove('hidden');
+
+            runSeasonCycle();
+        }
+
+        // ====================================================
+        // 理性阶梯薪资测算引擎 (避免过早通胀，高评分/养老方有超高薪)
+        // ====================================================
+        function calculateRealisticWage(ovr, club, isRenewal) {
+            let weeklyWage = 3000;
+
+            // 1. 晚年养老联赛 (沙特、美职联) - 提供养老超高薪
+            if (career.age >= 31 && (club.region === "SAUDI" || club.region === "MLS")) {
+                if (club.region === "SAUDI") {
+                    // 沙特超高薪：周薪 €30万 - €70万
+                    weeklyWage = 300000 + Math.round((ovr - 70) * 18000);
+                } else {
+                    // 美职联大联盟顶薪：周薪 €6万 - €18万
+                    weeklyWage = 60000 + Math.round((ovr - 70) * 6000);
+                }
+            }
+            // 2. 世界级超巨 (OVR >= 90) - 豪门顶薪
+            else if (ovr >= 90) {
+                // 周薪 €25万 - €45万 (年薪 1300万 - 2300万)
+                weeklyWage = 250000 + Math.round((ovr - 90) * 40000);
+            }
+            // 3. 洲际级名将与豪门核心 (84 - 89)
+            else if (ovr >= 84) {
+                // 周薪 €8万 - €18万 (年薪 400万 - 930万)
+                weeklyWage = 80000 + Math.round((ovr - 84) * 20000);
+            }
+            // 4. 五大联赛主力与中坚 (75 - 83)
+            else if (ovr >= 75) {
+                // 周薪 €1.5万 - €6.5万 (年薪 80万 - 340万)
+                weeklyWage = 15000 + Math.round((ovr - 75) * 6200);
+            }
+            // 5. 青训与轮换起步期 (OVR < 75)
+            else {
+                // 周薪 €2,000 - €12,000 (年薪 10万 - 62万)
+                weeklyWage = 2000 + Math.round(Math.max(0, ovr - 63) * 1000);
+            }
+
+            // 俱乐部声望修正 (豪门多给 20%，中小球会下浮)
+            if (club.tier === "giant" && club.region === "EU_TOP") {
+                weeklyWage = Math.round(weeklyWage * 1.25);
+            } else if (club.tier === "lower") {
+                weeklyWage = Math.round(weeklyWage * 0.85);
+            }
+
+            // 续约如果表现优异，涨薪幅度 25% - 45%
+            if (isRenewal) {
+                if (ovr >= 85) weeklyWage = Math.round(weeklyWage * 1.45);
+                else if (ovr >= 76) weeklyWage = Math.round(weeklyWage * 1.25);
+            }
+
+            return weeklyWage * 52;
+        }
+
+        function getSquadRole(ovr, clubRep) {
+            const gap = ovr - clubRep;
+            if (gap >= 6) return "绝对战术核心 (王牌)";
+            if (gap >= 0) return "常规首发主力";
+            if (gap >= -6) return "重要轮换拼图";
+            return "替补支援轮换";
+        }
+
+        function getContinentalQuota(club, rank) {
+            if (club.region === "EU_TOP") {
+                if (rank <= 4) return "UCL";
+                if (rank === 5) return "UEL";
+                return "UECL";
+            } else if (club.region === "EU_MID") {
+                if (rank <= 2) return "UCL";
+                return "UECL";
+            } else if (club.region === "EU_LOW") {
+                if (rank === 1) return "UCL";
+                return "无";
+            } else if (club.region === "ASIA") {
+                if (rank <= 2) return "ACLE";
+                return "无";
+            } else if (club.region === "SA") {
+                if (rank <= 4) return "LIBERTADORES";
+                return "SUDAMERICANA";
+            }
+            return "无";
+        }
+
+        // 动态潜力增减逻辑
+        function updateDynamicPotentialByRole(apps, rating) {
+            let paChange = 0;
+            let feedback = "";
+
+            if (career.currentRole.includes("绝对战术核心")) {
+                if (apps >= 38 && rating >= 7.25) {
+                    paChange = 1;
+                    feedback = "【核心考核达标】作为王牌全勤出战并打出统治级均分，领袖气质升华，动态潜能拓宽！";
+                } else if (apps < 28) {
+                    paChange = -1;
+                    feedback = "【出场承诺严重落空】作为核心战术地位被架空，出场不足，发展空间受阻。";
+                } else if (rating < 6.85) {
+                    paChange = -1;
+                    feedback = "【核心发挥失常】被赋予绝对球权却多次隐身，媒体质疑声四起，动态潜能回落。";
+                } else {
+                    feedback = "【核心地位达标】基本履行王牌职责，保持稳定成长轨迹。";
+                }
+            } else if (career.currentRole.includes("常规首发主力")) {
+                if (apps >= 32 && rating >= 7.3) {
+                    paChange = 1;
+                    feedback = "【主力超额达标】以主力身份持续踢出惊艳表现，潜力天花板进一步拓宽！";
+                } else if (apps < 20) {
+                    paChange = -1;
+                    feedback = "【主力承诺未兑现】遭遇冷落出场过少，状态受挫，成长空间趋缓。";
+                } else {
+                    feedback = "【主力地位达标】完成首发出战指标，技术稳步积累。";
+                }
+            } else if (career.currentRole.includes("重要轮换拼图")) {
+                if (apps >= 30 && rating >= 7.2) {
+                    paChange = 2;
+                    feedback = "【替补奇兵逆袭！】作为轮换替补屡建奇功，展现超越轮换身份的顶级天资，潜能暴涨！";
+                } else if (rating >= 7.3) {
+                    paChange = 1;
+                    feedback = "【超级奇兵】有限出场里打出大腿级表现，潜能上限拓宽！";
+                } else {
+                    feedback = "【轮换达标】很好完成替补待命任务，状态平稳。";
+                }
+            } else {
+                if (rating >= 7.2 && apps >= 15) {
+                    paChange = 2;
+                    feedback = "【边缘人涅槃】从深冷板凳席打出惊艳表现，动态潜能跨级跃升！";
+                } else {
+                    feedback = "【更衣室拼图】出场机会有限，在训练中积蓄力量。";
+                }
+            }
+
+            career.hiddenPA = Math.min(99, Math.max(60, career.hiddenPA + paChange));
+
+            if (career.hiddenPA >= 93) career.tierCode = "SSS";
+            else if (career.hiddenPA >= 89) career.tierCode = "SS";
+            else if (career.hiddenPA >= 84) career.tierCode = "S";
+            else if (career.hiddenPA >= 79) career.tierCode = "A";
+            else career.tierCode = "B";
+
+            return feedback;
+        }
+
+        // 成长引擎：20-26 岁黄金爆发，27-29 岁延续，36-48 岁老年衰退
+        function calculateRealOVRGrowth(recentRating) {
+            let growth = 0;
+            const distanceToCap = career.hiddenPA - career.ovr;
+
+            if (career.age <= 19) {
+                growth = Math.random() > 0.4 ? 2 : 1;
+                if (career.ovr >= 74) growth = Math.min(1, growth);
+            } else if (career.age <= 26) {
+                if (distanceToCap > 8) {
+                    growth = (recentRating >= 7.2) ? 4 : 3;
+                } else if (distanceToCap > 3) {
+                    growth = 2;
+                } else if (distanceToCap > 0) {
+                    growth = 1;
+                } else {
+                    growth = 0;
+                }
+            } else if (career.age <= 29) {
+                if (career.hiddenPA >= 88 && recentRating >= 7.35 && distanceToCap > 0) {
+                    growth = 1;
+                } else {
+                    growth = 0;
+                }
+            } else if (career.age <= 33) {
+                growth = Math.random() > 0.75 ? -1 : 0;
+            } else if (career.age <= 38) {
+                growth = -(Math.floor(Math.random() * 2) + 1);
+            } else {
+                growth = Math.random() > 0.6 ? -2 : -1;
+            }
+
+            const old = career.ovr;
+            career.ovr = Math.min(career.hiddenPA, Math.max(55, career.ovr + growth));
+            const diff = career.ovr - old;
+            document.getElementById('dash-growth-tag').innerText = diff >= 0 ? `+${diff}` : `${diff}`;
+        }
+
+        function runSeasonCycle() {
+            if (career.isRetiredEarly) return;
+
+            const seasonYear = career.startYear + (career.age - 17);
+            const c = career.club;
+            const currentCont = career.nextContinental;
+            const hasCont = currentCont !== "无";
+
+            let rank = 1;
+            const teamPower = c.rep + (career.ovr - 70) * 0.85 + (Math.random() * 10 - 5);
+            if (teamPower >= 91) rank = 1;
+            else if (teamPower >= 85) rank = Math.floor(Math.random() * 2) + 2;
+            else if (teamPower >= 80) rank = Math.floor(Math.random() * 3) + 4;
+            else if (teamPower >= 74) rank = Math.floor(Math.random() * 4) + 7;
+            else rank = Math.floor(Math.random() * 6) + 11;
+
+            career.nextContinental = getContinentalQuota(c, rank);
+
+            let baseApps = 25;
+            if (career.currentRole.includes("绝对战术核心")) baseApps = 40;
+            else if (career.currentRole.includes("常规首发主力")) baseApps = 34;
+            else if (career.currentRole.includes("重要轮换拼图")) baseApps = 22;
+            else baseApps = 14;
+
+            let apps = baseApps + Math.floor(Math.random() * 6) - 2;
+            if (hasCont) apps += Math.floor(Math.random() * 5) + 6;
+            apps = Math.min(54, Math.max(8, apps));
+
+            let g = 0, a = 0, cs = 0;
+            const factor = Math.max(0.1, (career.ovr - 65) / 30);
+
+            if (career.pos === 'ST') {
+                g = Math.floor(apps * (0.24 + factor * 0.44) * (0.85 + Math.random() * 0.3));
+                a = Math.floor(apps * (0.08 + factor * 0.16) * (0.85 + Math.random() * 0.3));
+            } else if (['LW', 'RW'].includes(career.pos)) {
+                g = Math.floor(apps * (0.18 + factor * 0.35) * (0.85 + Math.random() * 0.3));
+                a = Math.floor(apps * (0.14 + factor * 0.28) * (0.85 + Math.random() * 0.3));
+            } else if (['CAM', 'CM', 'LM', 'RM'].includes(career.pos)) {
+                g = Math.floor(apps * (0.06 + factor * 0.18) * (0.8 + Math.random() * 0.4));
+                a = Math.floor(apps * (0.20 + factor * 0.42) * (0.8 + Math.random() * 0.4));
+            } else if (['CDM', 'LB', 'CB', 'RB'].includes(career.pos)) {
+                g = Math.floor(Math.random() * 3);
+                a = Math.floor(Math.random() * 5) + 1;
+                cs = Math.floor(apps * (0.25 + (career.ovr / 250)));
+            } else if (career.pos === 'GK') {
+                cs = Math.floor(apps * (0.30 + (career.ovr / 230)));
+            }
+
+            const rating = Number((6.75 + (career.ovr / 85) + Math.random() * 0.35).toFixed(2));
+
+            const roleFeedback = updateDynamicPotentialByRole(apps, rating);
+            calculateRealOVRGrowth(rating);
+            career.currentRole = getSquadRole(career.ovr, c.rep);
+
+            let cups = [];
+            let awards = [];
+
+            if (rank === 1) cups.push(`${c.league}冠军 🏆`);
+            if (teamPower > 80 && Math.random() < 0.38) cups.push(`${c.domesticCup}冠军 🏆`);
+
+            if (currentCont === "UCL" && c.tier === "giant" && career.ovr >= 87 && Math.random() < 0.34) {
+                cups.push("欧洲冠军联赛冠军 👑");
+                triggerModal("欧洲之巅 · 捧起欧冠大耳杯", "在决赛关键战打入致命一击，正式斩获欧洲冠军联赛冠军！", "fa-trophy", false);
+            }
+            if (currentCont === "LIBERTADORES" && teamPower > 80 && Math.random() < 0.36) {
+                cups.push("南美解放者杯冠军 👑");
+                triggerModal("南美荣耀 · 夺得解放者杯", "在南美最高水平俱乐部决赛中击溃对手，赢得南美解放者杯冠军！", "fa-trophy", false);
+            }
+            if (currentCont === "ACLE" && teamPower > 78 && Math.random() < 0.40) {
+                cups.push("亚冠精英联赛冠军 👑");
+                triggerModal("亚洲霸主 · 问鼎亚冠", "率队登顶亚洲最高级别俱乐部赛事，赢得亚冠精英联赛冠军！", "fa-globe-asia", false);
+            }
+
+            const isWC = (seasonYear % 4 === 2);
+            if (isWC && career.ovr >= 85 && Math.random() < (career.ovr >= 90 ? 0.35 : 0.15)) {
+                cups.push("FIFA 世界杯冠军 🌟");
+                triggerModal("大力神杯加冕 · 终身图腾", `率领【${career.nation}】国家队勇夺 FIFA 世界杯冠军，举国沸腾！`, "fa-star", false);
+            }
+
+            let bScore = (rating * 10) + (career.ovr * 0.35);
+            if (c.region === "EU_TOP") bScore += 10;
+            if (cups.some(t => t.includes("欧洲冠军联赛"))) bScore += 26;
+            if (cups.some(t => t.includes("FIFA 世界杯"))) bScore += 28;
+
+            if (bScore >= 134 && career.ovr >= 89) {
+                career.ballonDOrWins++;
+                awards.push("金球奖 (Ballon d'Or) 🥇");
+                triggerModal("至高荣耀 · 荣膺金球奖", "凭借单赛季无与伦比的赛场主宰力，高票当选金球奖得主！", "fa-award", false);
+            }
+            if (career.pos === 'ST' && g >= 32) awards.push("联赛金靴 👟");
+            if (career.pos === 'GK' && cs >= 18) awards.push("年度最佳门将 🧤");
+
+            career.totalApps += apps;
+            career.totalGoals += g;
+            career.totalAssists += a;
+            career.totalCleanSheets += cs;
+            career.totalEarnings += career.annualWage;
+            career.trophies.push(...cups);
+
+            const snap = {
+                year: `${seasonYear}/${(seasonYear+1).toString().slice(-2)}`,
+                age: career.age,
+                club: c.name + (career.isLoaned ? " (租借)" : ""),
+                rank: `${c.league} 第${rank}名`,
+                apps: apps,
+                g: g, a: a, cs: cs,
+                ovr: career.ovr,
+                rating: rating,
+                trophies: cups.length > 0 ? cups.join(', ') : '无',
+                awards: awards.length > 0 ? awards.join(', ') : '—'
+            };
+            career.history.push(snap);
+
+            if (career.isLoaned) {
+                career.loanPendingDecision = true;
+            }
+
+            updateMainDashboardUI(snap, roleFeedback);
+            showBottomDecisions();
+        }
+
+        function updateMainDashboardUI(snap, roleFeedback) {
+            document.getElementById('dash-pos-tag').innerText = career.pos;
+            document.getElementById('dash-ovr-num').innerText = career.ovr;
+            document.getElementById('dash-name').innerText = career.name;
+            document.getElementById('dash-num-tag').innerText = `#${career.number}`;
+            document.getElementById('dash-age').innerText = `${career.age} 岁 (${snap.year})`;
+            
+            const clubDisplay = career.isLoaned ? `${career.club.name} (租借自 ${career.parentClub.name})` : `${career.club.name} (${career.club.league})`;
+            document.getElementById('dash-club').innerText = `现效力: ${clubDisplay}`;
+            
+            const loanTag = document.getElementById('loan-status-tag');
+            if (career.isLoaned) loanTag.classList.remove('hidden');
+            else loanTag.classList.add('hidden');
+
+            document.getElementById('dash-foot').innerText = career.foot;
+            document.getElementById('dash-wage').innerText = `€${Math.round(career.annualWage / 52).toLocaleString()}/周`;
+            document.getElementById('dash-earnings').innerText = `€${(career.totalEarnings/1000000).toFixed(1)}M`;
+            document.getElementById('dash-tier-badge').innerText = `${career.tierCode} 级`;
+            document.getElementById('dash-role-badge').innerText = career.currentRole;
+
+            document.getElementById('dash-potential-feedback').innerText = roleFeedback;
+            document.getElementById('dash-season-label').innerText = `${snap.year} 赛季官方数据报告`;
+            document.getElementById('dash-trophies-summary').innerText = `团队荣誉: ${snap.trophies}`;
+
+            document.getElementById('stat-apps').innerText = snap.apps;
+            if (['GK', 'CB', 'LB', 'RB', 'CDM'].includes(career.pos)) {
+                document.getElementById('stat-p-label').innerText = "零封 / 贡献";
+                document.getElementById('stat-p-val').innerText = `${snap.cs} 零封 (${snap.g}G/${snap.a}A)`;
+            } else {
+                document.getElementById('stat-p-label').innerText = "进球 / 助攻";
+                document.getElementById('stat-p-val').innerText = `${snap.g} 球 / ${snap.a} 助`;
+            }
+            document.getElementById('stat-rating').innerText = snap.rating;
+            document.getElementById('stat-rank').innerText = snap.rank;
+
+            const tbody = document.getElementById('history-tbody');
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-900 transition";
+            tr.innerHTML = `
+                <td class="py-1 text-slate-400">${snap.year}</td>
+                <td class="py-1 font-semibold text-sky-300">${snap.club}</td>
+                <td class="py-1 text-slate-300">${snap.rank}</td>
+                <td class="py-1 text-amber-300">${career.pos === 'GK' ? snap.cs + ' 零封' : snap.g + 'G / ' + snap.a + 'A'}</td>
+                <td class="py-1 text-white font-bold">${snap.ovr}</td>
+                <td class="py-1 truncate max-w-[240px] text-yellow-300">${snap.trophies} ${snap.awards !== '—' ? '(' + snap.awards + ')' : ''}</td>
+            `;
+            tbody.prepend(tr);
+        }
+
+        function showBottomDecisions() {
+            const container = document.getElementById('bottom-decision-container');
+            container.innerHTML = '';
+
+            if (career.age >= 48) {
+                container.innerHTML = `
+                    <div class="text-center space-y-2 py-2">
+                        <div class="text-sm font-bold text-white uppercase tracking-wider">达到足坛历史最高长寿极值 (48岁) · 正式荣耀挂靴</div>
+                        <button onclick="finishAndShowHall()" class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg">
+                            进入终极大满贯名人堂结算
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (career.loanPendingDecision) {
+                renderLoanReturnDecision(container);
+                return;
+            }
+
+            if (career.age % 2 === 0) {
+                renderBottomRandomEvent(container);
+            } else {
+                renderBottomHorizontalTransfers(container);
+            }
+        }
+
+        function renderLoanReturnDecision(container) {
+            const loanClub = career.club;
+            const parentClub = career.parentClub;
+
+            container.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                            <i class="fas fa-retweet"></i> 租借期满结算：评估未来去向
+                        </div>
+                        <span class="text-xs text-slate-400 font-num">租借合同已到期</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        你在【${loanClub.name}】完成了为期一个赛季的租借练级。该队管理层对你的进步极其认可，愿激活全额买断条款永久签下你；而母队【${parentClub.name}】亦发来召回通知准备检验你的成长成果。
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <button onclick="settleLoanChoice('buyout')" class="p-3.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition space-y-1">
+                            <div class="text-xs sm:text-sm font-bold text-emerald-300">【激活买断】永久转会加盟 ${loanClub.name}</div>
+                            <div class="text-xs text-slate-400">正式扎根该队，继续坐稳常规首发主力席位。</div>
+                        </button>
+                        <button onclick="settleLoanChoice('return')" class="p-3.5 rounded-xl border border-sky-500/50 bg-sky-500/10 hover:bg-sky-500/20 text-left transition space-y-1">
+                            <div class="text-xs sm:text-sm font-bold text-sky-300">【结束租借】回归母队 ${parentClub.name}</div>
+                            <div class="text-xs text-slate-400">带着外租积累的赛场信心重返母队，竞争更高的战术地位。</div>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function settleLoanChoice(type) {
+            showThinking("正在办理租借期满交接手续...", 1100, () => {
+                if (type === 'buyout') {
+                    career.parentClub = null;
+                    career.isLoaned = false;
+                    career.loanPendingDecision = false;
+                    career.currentRole = getSquadRole(career.ovr, career.club.rep);
+                } else {
+                    career.club = career.parentClub;
+                    career.parentClub = null;
+                    career.isLoaned = false;
+                    career.loanPendingDecision = false;
+                    career.currentRole = getSquadRole(career.ovr, career.club.rep);
+                }
+                renderBottomHorizontalTransfers(document.getElementById('bottom-decision-container'));
+            });
+        }
+
+        function renderBottomRandomEvent(container) {
+            const ev = CAREER_EVENTS_POOL[Math.floor(Math.random() * CAREER_EVENTS_POOL.length)];
+            
+            let successRate = 48 + (career.hiddenPA - 80) * 1.5;
+            if (career.age > 30) successRate -= (career.age - 30) * 4;
+            successRate = Math.min(88, Math.max(25, Math.round(successRate)));
+            const failRate = 100 - successRate;
+
+            let voluntaryRetireHtml = '';
+            if (career.age >= 36) {
+                voluntaryRetireHtml = `
+                    <div class="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 px-3.5 py-2 rounded-xl mb-3">
+                        <span class="text-xs text-amber-300 font-bold"><i class="fas fa-medal mr-1.5"></i> 已达 36 岁功勋老将年龄：可自主宣布正式挂靴</span>
+                        <button onclick="finishAndShowHall()" class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 shadow">宣布挂靴</button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                ${voluntaryRetireHtml}
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <i class="fas fa-bolt"></i> 生涯转折点突发事件：${ev.title}
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-num">胜率由临场意志与身体耐受度决定</div>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">${ev.desc}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <button onclick="executeEventDecision('prob', ${successRate}, ${JSON.stringify(ev).replace(/"/g, '&quot;')})" class="p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-left transition space-y-1">
+                        <div class="flex items-center justify-between text-xs font-bold text-amber-300">
+                            <span>【放手一搏】${ev.probChoice.title}</span>
+                            <span class="text-[10px] font-num bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-300">胜率 ${successRate}%</span>
+                        </div>
+                        <div class="text-xs text-emerald-400 leading-tight">收益：${ev.probChoice.buffOutcome}</div>
+                        <div class="text-xs text-red-400 leading-tight">代价 (${failRate}%)：${ev.probChoice.debuffOutcome}</div>
+                    </button>
+
+                    <button onclick="executeEventDecision('safe', 100, null)" class="p-3.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-left transition space-y-1">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-200">
+                            <span>【稳妥权衡】${ev.safeChoice.title}</span>
+                            <span class="text-[10px] font-num bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">100% 达成</span>
+                        </div>
+                        <div class="text-xs text-slate-400 leading-tight">${ev.safeChoice.outcome}</div>
+                    </button>
+                </div>
+            `;
+        }
+
+        function executeEventDecision(type, successRate, eventObj) {
+            showThinking("推演赛场博弈与身心考验...", 1200, () => {
+                if (type === 'prob' && eventObj) {
+                    const roll = Math.random() * 100;
+                    if (roll <= successRate) {
+                        career.hiddenPA = Math.min(97, career.hiddenPA + 2);
+                        triggerModal("境界升华 · 突破上限", "你在重大硬仗中打破技术桎梏，大局观与战力空间获得升华！", "fa-bolt", false);
+                    } else {
+                        career.hiddenPA = Math.max(65, career.hiddenPA - 3);
+                        career.ovr = Math.max(55, career.ovr - 2);
+
+                        if (career.age >= 28 && Math.random() < 0.28) {
+                            career.isRetiredEarly = true;
+                            career.retirementReason = "遭遇不可逆关节韧带重创，无法继续承受高对抗赛事，被迫在年华未尽时提前挂靴。";
+                            triggerModal("心碎官宣 · 提前退役", career.retirementReason, "fa-heart-broken", true);
+                            return;
+                        } else {
+                            triggerModal("伤病阴影 · 机能折损", "身体留下了无法完全修复的暗疾，敏捷度与上限空间受到永久拖累。", "fa-crutch", false);
+                        }
+                    }
+                }
+                renderBottomHorizontalTransfers(document.getElementById('bottom-decision-container'));
+            });
+        }
+
+        // ====================================================
+        // 转会窗口：理性薪酬约束 + 豪门高潜轮换 + 严格青年外租
+        // ====================================================
+        function renderBottomHorizontalTransfers(container) {
+            // 依据合理公式重新计算续约薪酬
+            const renewWage = calculateRealisticWage(career.ovr, career.club, true);
+            const renewRole = getSquadRole(career.ovr, career.club.rep);
+
+            let renewalTypeLabel = "平稳续约";
+            let renewalColor = "text-slate-300";
+            if (renewWage > career.annualWage * 1.15) {
+                renewalTypeLabel = "大幅涨薪 🔺";
+                renewalColor = "text-emerald-400";
+            } else if (renewWage < career.annualWage * 0.9) {
+                renewalTypeLabel = "老将降薪 🔻";
+                renewalColor = "text-amber-400";
+            }
+
+            // 筛选正式转会下家
+            let transferCandidates = [];
+
+            if (career.age >= 31) {
+                // 生涯晚期高薪养老邀约 (沙特 / 美职联)
+                const saudiMls = ALL_CLUBS.filter(c => (c.region === "SAUDI" || c.region === "MLS") && c.name !== career.club.name);
+                const euOffers = ALL_CLUBS.filter(c => (c.tier === "contender" || c.tier === "mid_upper" || c.tier === "giant") && c.name !== career.club.name);
+                saudiMls.sort(() => 0.5 - Math.random());
+                euOffers.sort(() => 0.5 - Math.random());
+                transferCandidates = [...saudiMls.slice(0, 2), ...euOffers.slice(0, 2)];
+            } else {
+                // 青年与巅峰期
+                if (career.ovr >= 87) {
+                    transferCandidates = ALL_CLUBS.filter(c => c.tier === "giant" && c.region === "EU_TOP" && c.name !== career.club.name);
+                } else if (career.age <= 23 && career.hiddenPA >= 86) {
+                    const giants = ALL_CLUBS.filter(c => c.tier === "giant" && c.name !== career.club.name);
+                    const contenders = ALL_CLUBS.filter(c => c.tier === "contender" && c.name !== career.club.name);
+                    giants.sort(() => 0.5 - Math.random());
+                    contenders.sort(() => 0.5 - Math.random());
+                    transferCandidates = [...giants.slice(0, 2), ...contenders.slice(0, 2)];
+                } else if (career.ovr >= 76) {
+                    transferCandidates = ALL_CLUBS.filter(c => (c.tier === "contender" || c.tier === "mid_upper") && c.name !== career.club.name);
+                } else {
+                    transferCandidates = ALL_CLUBS.filter(c => (c.tier === "lower" || c.region === "ASIA" || c.region === "EU_LOW" || c.region === "SA") && c.name !== career.club.name);
+                }
+            }
+
+            transferCandidates.sort(() => 0.5 - Math.random());
+            const transferOffers = transferCandidates.slice(0, 3);
+
+            let transferCardsHtml = '';
+            offers = transferOffers;
+            offers.forEach(target => {
+                // 执行理性阶梯薪资函数计算
+                const wage = calculateRealisticWage(career.ovr, target, false);
+
+                let targetRole = getSquadRole(career.ovr, target.rep);
+                if (target.tier === "giant" && career.ovr < 80 && career.hiddenPA >= 86) {
+                    targetRole = "未来储备 / 重要轮换";
+                }
+
+                transferCardsHtml += `
+                    <div class="min-w-[270px] sm:min-w-[290px] flex-shrink-0 bg-slate-950 border border-slate-800 hover:border-sky-500 rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-white truncate max-w-[150px]">${target.name}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-num">${target.league}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-1">声望: ${target.rep} · ${target.country}</div>
+                            <div class="text-[11px] text-amber-300 font-semibold mt-1">承诺定位: 【${targetRole}】</div>
+                            <div class="text-xs text-slate-300 mt-1 font-num">
+                                周薪报价: <span class="text-emerald-400 font-bold">€${Math.round(wage/52).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <button onclick="commitTransferDecision('${target.name}', ${wage}, '${targetRole}')" class="w-full py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition flex items-center justify-center gap-1">
+                            <span>签约永久加盟</span>
+                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+                `;
+            });
+
+            // 租借机制：严格限定青年 (<=24岁) 且原球队出场受限时，由俱乐部提议
+            let loanSectionHtml = '';
+            const isYoungster = career.age <= 24;
+            const clubWantsLoan = (!career.isLoaned && isYoungster && (career.currentRole.includes("轮换") || career.currentRole.includes("替补") || (career.club.tier === 'giant' && career.ovr < 80)));
+
+            if (clubWantsLoan) {
+                const loanPool = ALL_CLUBS.filter(c => c.rep < career.club.rep && c.name !== career.club.name);
+                loanPool.sort(() => 0.5 - Math.random());
+                const loanOffers = loanPool.slice(0, 3);
+
+                let loanCardsHtml = '';
+                loanOffers.forEach(lClub => {
+                    loanCardsHtml += `
+                        <div class="min-w-[250px] flex-shrink-0 bg-slate-950/90 border border-sky-500/30 hover:border-sky-400 rounded-xl p-3 flex flex-col justify-between space-y-2 transition">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-sky-300 truncate">${lClub.name}</span>
+                                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-950 text-sky-400 font-num">${lClub.league}</span>
+                                </div>
+                                <div class="text-[11px] text-emerald-400 font-semibold mt-1">保证定位: 【常规首发主力】</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">租借期 1 赛季 · 含优先买断权</div>
+                            </div>
+                            <button onclick="acceptLoanDeal('${lClub.name}')" class="w-full py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition">
+                                接受外租历练
+                            </button>
+                        </div>
+                    `;
+                });
+
+                loanSectionHtml = `
+                    <div class="border-t border-slate-800 pt-3 mt-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                                <i class="fas fa-paper-plane text-[11px]"></i> 【母队管理层建议外租】鉴于一线队出场机会有限，俱乐部特为你接洽了 3 家可保证首发主力的外租下家：
+                            </span>
+                            <span class="text-[10px] text-slate-500 font-num">租借期满后可自由决定去留</span>
+                        </div>
+                        <div class="flex flex-row overflow-x-auto gap-3 pb-1 custom-scroll">
+                            ${loanCardsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 36 岁以上自主退役横幅
+            let voluntaryRetireBanner = '';
+            if (career.age >= 36) {
+                voluntaryRetireBanner = `
+                    <div class="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 rounded-xl mb-3">
+                        <div class="text-xs sm:text-sm text-amber-300 font-bold flex items-center gap-2">
+                            <i class="fas fa-award"></i> 已迈入 36 岁老将功勋岁月：可随时宣布体面退役，亦可继续奋战至 48 岁
+                        </div>
+                        <button onclick="finishAndShowHall()" class="px-3.5 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 shadow">
+                            荣耀挂靴 · 正式退役
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                ${voluntaryRetireBanner}
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <i class="fas fa-handshake"></i> 夏季转会与合同谈判窗口 (${career.age}岁 · 薪水严格挂钩战力与年龄)
+                    </div>
+                    <span class="text-xs text-slate-400 font-num">向右横滑浏览更多报价 ➔</span>
+                </div>
+                
+                <div class="flex flex-row overflow-x-auto gap-3 pb-2 pt-1 custom-scroll">
+                    <!-- 留队卡片 -->
+                    <div class="min-w-[270px] sm:min-w-[290px] flex-shrink-0 bg-slate-950 border border-slate-800 hover:border-emerald-500 rounded-xl p-3.5 flex flex-col justify-between space-y-3 transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-emerald-400 truncate max-w-[150px]">${career.club.name}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/60 ${renewalColor} border border-emerald-800 font-num">${renewalTypeLabel}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-1">留守母队，维系更衣室威望</div>
+                            <div class="text-[11px] text-sky-300 font-semibold mt-1">当前地位: 【${renewRole}】</div>
+                            <div class="text-xs text-slate-300 mt-1 font-num">
+                                续约周薪: <span class="text-emerald-400 font-bold">€${Math.round(renewWage/52).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <button onclick="commitTransferDecision('${career.club.name}', ${renewWage}, '${renewRole}')" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-1">
+                            <i class="fas fa-check text-[10px]"></i>
+                            <span>签字留队</span>
+                        </button>
+                    </div>
+
+                    ${transferCardsHtml}
+                </div>
+
+                ${loanSectionHtml}
+            `;
+        }
+
+        function acceptLoanDeal(loanClubName) {
+            showThinking(`正在办理外租手续，前往 ${loanClubName} 练级...`, 1200, () => {
+                const targetClub = ALL_CLUBS.find(c => c.name === loanClubName);
+                career.parentClub = career.club;
+                career.club = targetClub;
+                career.isLoaned = true;
+                career.currentRole = "常规首发主力 (租借练级)";
+                career.nextContinental = getContinentalQuota(targetClub, 1);
+                career.age++;
+
+                runSeasonCycle();
+            });
+        }
+
+        function commitTransferDecision(clubName, wage, role) {
+            showThinking(`办理新赛季注册，定位【${role}】...`, 1200, () => {
+                const found = ALL_CLUBS.find(c => c.name === clubName) || career.club;
+                career.club = found;
+                career.annualWage = wage;
+                career.currentRole = role;
+                career.isLoaned = false;
+                career.parentClub = null;
+                career.nextContinental = getContinentalQuota(found, 1);
+                career.age++;
+
+                runSeasonCycle();
+            });
+        }
+
+        function showThinking(text, duration, cb) {
+            const overlay = document.getElementById('thinking-overlay');
+            document.getElementById('thinking-text').innerText = text;
+            overlay.classList.remove('hidden');
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                if (cb) cb();
+            }, duration);
+        }
+
+        function triggerModal(title, desc, iconClass, isRetirement) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            document.getElementById('modal-icon').className = `fas ${iconClass}`;
+            
+            const btn = document.getElementById('modal-action-btn');
+            if (isRetirement) {
+                btn.innerText = "痛别赛场 · 查看终身档案总结";
+                btn.onclick = () => {
+                    closeStatusModal();
+                    finishAndShowHall();
+                };
+            } else {
+                btn.innerText = "收下通报并继续推演";
+                btn.onclick = closeStatusModal;
+            }
+
+            document.getElementById('status-modal').classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('status-modal').classList.add('hidden');
+        }
+
+        // 终极名人堂大满贯结算 (官方真实命名)
+        function finishAndShowHall() {
+            document.getElementById('step-main').classList.add('hidden');
+            document.getElementById('step-hall').classList.remove('hidden');
+
+            document.getElementById('hall-meta-subtitle').innerText = `${career.name} · #${career.number} · ${career.foot} · ${career.nation} · ${career.pos} · 出道自: ${career.academy}`;
+            document.getElementById('hall-stat-apps').innerText = `${career.totalApps} 场`;
+
+            if (['GK', 'CB', 'LB', 'RB', 'CDM'].includes(career.pos)) {
+                document.getElementById('hall-core-label').innerText = "生涯总零封 / 造球";
+                document.getElementById('hall-core-val').innerText = `${career.totalCleanSheets} 零封 (${career.totalGoals}G/${career.totalAssists}A)`;
+            } else {
+                document.getElementById('hall-core-label').innerText = "生涯总造球 (进球/助攻)";
+                document.getElementById('hall-core-val').innerText = `${career.totalGoals + career.totalAssists} (${career.totalGoals}球 ${career.totalAssists}助)`;
+            }
+
+            document.getElementById('hall-stat-ballon').innerText = `${career.ballonDOrWins} 座`;
+            document.getElementById('hall-stat-cups').innerText = `${career.trophies.length} 座`;
+            document.getElementById('hall-final-earnings').innerText = `€${(career.totalEarnings / 1000000).toFixed(1)} 百万欧`;
+
+            const chain = [...new Set(career.history.map(h => h.club))];
+            document.getElementById('hall-final-clubs').innerText = chain.join(' ➔ ');
+
+            const badgeBox = document.getElementById('hall-trophy-badges');
+            badgeBox.innerHTML = '';
+            const distinctTrophies = [...new Set(career.trophies)];
+            distinctTrophies.forEach(t => {
+                const b = document.createElement('span');
+                b.className = "px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-num font-semibold";
+                b.innerText = t;
+                badgeBox.appendChild(b);
+            });
+            if (career.ballonDOrWins > 0) {
+                const b = document.createElement('span');
+                b.className = "px-2.5 py-0.5 rounded bg-yellow-500/20 border border-yellow-400 text-yellow-300 text-[11px] font-num font-bold";
+                b.innerText = `金球奖 x ${career.ballonDOrWins} 🥇`;
+                badgeBox.appendChild(b);
+            }
+
+            let critique = "";
+            if (career.isRetiredEarly) {
+                document.getElementById('hall-rating-title').innerText = "未竟之梦 · 宿命折翼叹息";
+                critique = `${career.name}的职业生涯充斥着壮志未酬的苍凉。在年仅 ${career.age} 岁之时因不可逆伤病提前告别赛场。但在效力于${chain.join('、')}的岁月里，身披 #${career.number} 的每一次奔跑依然被球迷深深刻在记忆深处。`;
+            } else if (career.age >= 42) {
+                document.getElementById('hall-rating-title').innerText = "不老传奇 · 绿茵常青松柏";
+                critique = `奋战至惊人的 ${career.age} 岁高龄，跨越了整整数代年轻人的成长岁月。无论是早年的外租闯荡、豪门封神，还是晚年征战沙特与美职联，其百折不挠的职业长跑精神已化作世界足坛的永恒丰碑。`;
+            } else if (career.ballonDOrWins >= 2) {
+                document.getElementById('hall-rating-title').innerText = "世纪球王 · 绿茵终极丰碑";
+                critique = `用长达近二十年的绝对统治力征服了世界足坛。包揽了包括${career.ballonDOrWins}座金球奖在内的全满贯荣耀，不仅攻克了所有俱乐部与洲际赛事最高峰，更是名垂青史的时代上帝。`;
+            } else if (career.ovr >= 88) {
+                document.getElementById('hall-rating-title').innerText = "时代巨星 · 豪强擎天之柱";
+                critique = `${career.name}在 20–26 岁的黄金爆发期迅速蜕变为主流巨星，多次在重大决赛力挽狂澜，毫无争议地成为当代足坛最具代表性的标杆人物。`;
+            } else {
+                document.getElementById('hall-rating-title').innerText = "百折不挠 · 坚韧的绿茵长跑者";
+                critique = `${career.name}辗转多国联赛，始终恪守自律，用脚踏实地的执行力为后辈树立了敬业典范。`;
+            }
+
+            document.getElementById('hall-contextual-summary').innerHTML = `
+                <span class="font-bold text-white">权威生涯终审评议：</span> ${critique}
+            `;
+        }
+
+        function copyCareerLog() {
+            const chain = [...new Set(career.history.map(h => h.club))];
+            const text = `【足球传奇5 · 职业生涯档案】\n球员：${career.name} (#${career.number} · ${career.foot} · ${career.nation}) | 位置：${career.pos}\n青训母队：${career.academy} | 最终战力：${career.ovr} (评级: ${career.tierCode})\n俱乐部轨迹：${chain.join(' -> ')}\n退役年龄：${career.age} 岁 | 生涯出场：${career.totalApps} 场\n造球/零封：${career.totalGoals}G / ${career.totalAssists}A / ${career.totalCleanSheets}CS\n金球奖：${career.ballonDOrWins} 座 | 团队奖杯：${career.trophies.length} 座\n状态：${career.isRetiredEarly ? '因伤提前挂靴' : '功成圆满挂靴'}\n总薪资收益：€${(career.totalEarnings/1000000).toFixed(1)}M\n正式载入国际足联历史档案！`;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("已成功复制完整生涯档案！");
+            });
+        }
+
+        window.onload = () => {
+            filterNations();
+        };
+    </script>
+</body>
+</html>
